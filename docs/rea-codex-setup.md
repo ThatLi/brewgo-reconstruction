@@ -16,6 +16,8 @@ It writes the complete plan outside Git and prints its SHA-256 digest. Review th
 
 The wrapper regenerates the plan immediately before applying. It refuses to continue if the plan has changed, preventing approval of one plan from being reused for another.
 
+REA's canonical Codex registration invokes `npx`. After applying the reviewed setup, the wrapper preserves that canonical command and adds a server-local `PATH` beginning with the verified portable Node directory. This prevents an older system Node installation from launching the MCP server while keeping REA's registration identity aligned.
+
 After a successful apply:
 
 1. Fully restart or reconnect Codex so it loads the new MCP registration and skill.

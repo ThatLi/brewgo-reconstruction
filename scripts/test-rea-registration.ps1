@@ -17,8 +17,10 @@ $outputPath = Join-Path $diagnosticRoot 'rea-codex-doctor.json'
 New-Item -ItemType Directory -Force -Path $diagnosticRoot | Out-Null
 $previousCache = $env:npm_config_cache
 $previousPath = $env:PATH
+$previousJadx = $env:REA_JADX_MCP_JAR
 $env:npm_config_cache = Join-Path $WorkRoot 'npm-cache'
 $env:PATH = "$nodeRoot;$previousPath"
+$env:REA_JADX_MCP_JAR = Join-Path $toolRoot "jadx\$($manifest.tools.jadx.fileName)"
 try {
     $output = & $npxExecutable --yes $manifest.tools.rea.package doctor --client codex --skill --format json 2>&1
     $exitCode = $LASTEXITCODE
@@ -31,4 +33,5 @@ try {
 } finally {
     $env:npm_config_cache = $previousCache
     $env:PATH = $previousPath
+    $env:REA_JADX_MCP_JAR = $previousJadx
 }

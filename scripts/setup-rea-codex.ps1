@@ -61,9 +61,29 @@ try {
 
     $applyText = ($applyOutput | Out-String).Trim()
     [System.IO.File]::WriteAllText($appliedPath, "$applyText`n", [System.Text.UTF8Encoding]::new($false))
+
+    $codexCli = $env:CODEX_CLI_PATH
+    if (-not $codexCli -or -not (Test-Path -LiteralPath $codexCli -PathType Leaf)) {
+        throw 'CODEX_CLI_PATH must point to the active Codex CLI to pin the portable REA runtime.'
+    }
+
+    $serverPath = "$nodeRoot;$previousPath"
+    & $codexCli mcp remove rea | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        throw 'Unable to replace the generated REA registration.'
+    }
+    & $codexCli mcp add `
+        --env "REA_JADX_MCP_JAR=$env:REA_JADX_MCP_JAR" `
+        --env "PATH=$serverPath" `
+        rea -- cmd.exe /d /c npx -y $manifest.tools.rea.package mcp | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        throw 'Unable to register REA with the portable Node runtime.'
+    }
+
     [PSCustomObject]@{
         mode = 'applied'
         reviewedPlanSha256 = $planHash
+        portableRuntimePinned = $true
         result = $applyText | ConvertFrom-Json
     } | ConvertTo-Json -Depth 20
 } finally {
