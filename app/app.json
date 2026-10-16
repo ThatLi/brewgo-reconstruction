@@ -1,0 +1,29 @@
+{
+  "expo": {
+    "name": "BrewGo",
+    "slug": "brewgo",
+    "version": "0.0.0",
+    "orientation": "portrait",
+    "scheme": "brewgo",
+    "userInterfaceStyle": "light",
+    "android": {
+      "package": "com.brewgo.demo",
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "output": "static"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#FFFDF8"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
