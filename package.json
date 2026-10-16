@@ -4,6 +4,9 @@
   "private": true,
   "description": "Clean-room workspace for the BrewGo coffee ordering demo",
   "license": "MIT",
+  "scripts": {
+    "safety": "node scripts/safety-check.mjs"
+  },
   "engines": {
     "node": ">=24.11.0"
   }
