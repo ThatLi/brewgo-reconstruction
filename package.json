@@ -5,7 +5,8 @@
   "description": "Clean-room workspace for the BrewGo coffee ordering demo",
   "license": "MIT",
   "scripts": {
-    "safety": "node scripts/safety-check.mjs"
+    "safety": "node scripts/safety-check.mjs",
+    "test:intake": "pwsh -NoProfile -File tests/apk-intake.tests.ps1"
   },
   "engines": {
     "node": ">=24.11.0"
