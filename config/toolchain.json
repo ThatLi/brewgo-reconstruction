@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "tools": {
+    "node": {
+      "version": "24.22.0",
+      "fileName": "node-v24.22.0-win-x64.zip",
+      "url": "https://nodejs.org/dist/v24.22.0/node-v24.22.0-win-x64.zip",
+      "sha256": "f9683a19877e12a9b167305c8db71040d812876359de21f0d2e97c3f321f80c3",
+      "archiveDirectory": "node-v24.22.0-win-x64"
+    },
+    "jadx": {
+      "version": "0.7.1",
+      "fileName": "jadx-headless-mcp-0.7.1-all.jar",
+      "url": "https://github.com/1013503897/jadx-headless-mcp/releases/download/v0.7.1/jadx-headless-mcp-0.7.1-all.jar",
+      "sha256": "6e5eacf500b64292bfb73c49797c1958f6ee44646e43e868039ae7feb573ff75"
+    },
+    "apktool": {
+      "version": "3.0.3",
+      "fileName": "apktool_3.0.3.jar",
+      "url": "https://github.com/iBotPeaches/Apktool/releases/download/v3.0.3/apktool_3.0.3.jar",
+      "sha256": "dbf930b076c6b9be08d57c449cacefc3bdd6b71ebd59b3066fc0e1f5b14f9423"
+    },
+    "githubCli": {
+      "version": "2.102.0",
+      "fileName": "gh_2.102.0_windows_amd64.zip",
+      "url": "https://github.com/cli/cli/releases/download/v2.102.0/gh_2.102.0_windows_amd64.zip",
+      "sha256": "ae64e556ecc240b200f7eba60d550e4bb60d78e860e69dd88c449405b86067f4",
+      "archiveDirectory": "bin"
+    },
+    "rea": {
+      "version": "6.5.0",
+      "package": "rea-agents@6.5.0",
+      "integrity": "sha512-C6BG7LyrAdR74mSjertM6PrxJkcNZ2bfQNOJornPo9erDEp2tyPRVYPnV5Yodr+1RqewCQla68WulXlVnveD+A=="
+    }
+  }
+}
