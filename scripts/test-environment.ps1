@@ -70,11 +70,14 @@ if ($jadxHash -ne $manifest.tools.jadx.sha256.ToLowerInvariant()) {
 }
 
 $previousCache = $env:npm_config_cache
+$previousPath = $env:PATH
+$env:PATH = "$nodeRoot;$previousPath"
 $env:npm_config_cache = Join-Path $WorkRoot 'npm-cache'
 try {
     $reaVersionOutput = Invoke-Captured -Command $npxExecutable -Arguments @('--yes', $manifest.tools.rea.package, '--version')
 } finally {
     $env:npm_config_cache = $previousCache
+    $env:PATH = $previousPath
 }
 
 $result = [ordered]@{
