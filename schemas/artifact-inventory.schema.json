@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/brewgo/artifact-inventory.schema.json",
+  "title": "BrewGo sanitized Android artifact inventory",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "artifactSetDigest",
+    "package",
+    "artifacts",
+    "components",
+    "permissions",
+    "technology",
+    "coverage",
+    "unknowns"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "artifactSetDigest": { "$ref": "#/$defs/sha256" },
+    "package": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "versionName", "versionCode", "minSdk", "targetSdk"],
+      "properties": {
+        "id": { "type": ["string", "null"] },
+        "versionName": { "type": ["string", "null"] },
+        "versionCode": { "type": ["string", "null"] },
+        "minSdk": { "type": ["integer", "null"], "minimum": 1 },
+        "targetSdk": { "type": ["integer", "null"], "minimum": 1 }
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "role", "bytes", "sha256"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$" },
+          "role": { "enum": ["base", "split", "unknown"] },
+          "bytes": { "type": "integer", "minimum": 1 },
+          "sha256": { "$ref": "#/$defs/sha256" }
+        }
+      }
+    },
+    "components": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["activities", "services", "receivers", "providers"],
+      "properties": {
+        "activities": { "$ref": "#/$defs/stringArray" },
+        "services": { "$ref": "#/$defs/stringArray" },
+        "receivers": { "$ref": "#/$defs/stringArray" },
+        "providers": { "$ref": "#/$defs/stringArray" }
+      }
+    },
+    "permissions": { "$ref": "#/$defs/stringArray" },
+    "signatures": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["verificationPerformed"],
+      "properties": {
+        "verificationPerformed": { "const": false },
+        "note": { "type": "string" }
+      }
+    },
+    "technology": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["primary", "confidence", "indicators"],
+      "properties": {
+        "primary": {
+          "enum": ["android-native", "react-native", "flutter", "hybrid-webview", "mixed", "unknown"]
+        },
+        "confidence": { "$ref": "#/$defs/confidence" },
+        "indicators": { "$ref": "#/$defs/stringArray" }
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["manifest", "resources", "classes", "nativeLibraries"],
+      "properties": {
+        "manifest": { "$ref": "#/$defs/coverageState" },
+        "resources": { "$ref": "#/$defs/coverageState" },
+        "classes": { "$ref": "#/$defs/coverageState" },
+        "nativeLibraries": { "$ref": "#/$defs/coverageState" }
+      }
+    },
+    "evidenceRefs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind", "artifactSha256"],
+        "properties": {
+          "kind": { "enum": ["manifest", "resource-summary", "class-inventory", "archive-inventory"] },
+          "artifactSha256": { "$ref": "#/$defs/sha256" },
+          "selector": { "type": "string" }
+        }
+      }
+    },
+    "unknowns": { "$ref": "#/$defs/stringArray" }
+  },
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "stringArray": {
+      "type": "array",
+      "items": { "type": "string" },
+      "uniqueItems": true
+    },
+    "confidence": { "enum": ["high", "medium", "low", "unknown"] },
+    "coverageState": { "enum": ["complete", "partial", "unavailable", "not-inspected"] }
+  }
+}
