@@ -27,35 +27,105 @@ if (-not (Test-Path -LiteralPath $resolvedInput -PathType Container)) {
 }
 
 $unsupportedPackages = Get-ChildItem -LiteralPath $resolvedInput -Recurse -File | Where-Object {
-    $_.Extension.ToLowerInvariant() -in @('.aab', '.apks', '.xapk', '.ipa')
+    $_.Extension.ToLowerInvariant() -in @('.aab', '.apks', '.ipa')
 }
 if ($unsupportedPackages) {
     throw "Unsupported package format found: $($unsupportedPackages[0].Name)"
 }
 
-$apkFiles = @(Get-ChildItem -LiteralPath $resolvedInput -Recurse -File -Filter '*.apk' | Sort-Object FullName)
-if ($apkFiles.Count -eq 0) {
-    throw 'No APK files were found in the authorized intake directory.'
+$apkSources = [System.Collections.Generic.List[object]]::new()
+foreach ($file in @(Get-ChildItem -LiteralPath $resolvedInput -Recurse -File -Filter '*.apk' | Sort-Object FullName)) {
+    $apkSources.Add([PSCustomObject]@{
+        File = $file
+        DisplayName = [System.IO.Path]::GetRelativePath($resolvedInput, $file.FullName).Replace('\', '/')
+        DeclaredRole = if ($file.Name -ieq 'base.apk') { 'base' } else { 'split-or-unknown' }
+        ContainerSha256 = $null
+    })
 }
 
-$duplicateNames = $apkFiles | Group-Object { $_.Name.ToLowerInvariant() } | Where-Object Count -GT 1
+$xapkFiles = @(Get-ChildItem -LiteralPath $resolvedInput -Recurse -File -Filter '*.xapk' | Sort-Object FullName)
+foreach ($xapkFile in $xapkFiles) {
+    $beforeLength = $xapkFile.Length
+    $beforeWriteTime = $xapkFile.LastWriteTimeUtc
+    $containerHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $xapkFile.FullName).Hash.ToLowerInvariant()
+    $archive = $null
+    try {
+        $archive = [System.IO.Compression.ZipFile]::OpenRead($xapkFile.FullName)
+        $unsafeEntry = $archive.Entries | Where-Object {
+            $_.FullName -match '(^|[\\/])\.\.([\\/]|$)' -or [System.IO.Path]::IsPathRooted($_.FullName)
+        } | Select-Object -First 1
+        if ($unsafeEntry) { throw "XAPK contains an unsafe archive entry path: $($xapkFile.Name)" }
+
+        $nestedApks = @($archive.Entries | Where-Object { $_.FullName -match '(?i)\.apk$' } | Sort-Object FullName)
+        if ($nestedApks.Count -eq 0) { throw "XAPK contains no APK entries: $($xapkFile.Name)" }
+
+        $declaredBase = $null
+        $manifestEntry = $archive.GetEntry('manifest.json')
+        if ($manifestEntry) {
+            $reader = [System.IO.StreamReader]::new($manifestEntry.Open())
+            try {
+                $manifest = $reader.ReadToEnd() | ConvertFrom-Json
+                $baseDeclaration = @($manifest.split_apks | Where-Object id -EQ 'base' | Select-Object -First 1)
+                if ($baseDeclaration.Count -eq 1) { $declaredBase = [string]$baseDeclaration[0].file }
+            } catch {
+                throw "XAPK manifest.json is malformed: $($xapkFile.Name)"
+            } finally {
+                $reader.Dispose()
+            }
+        }
+
+        $expansionRoot = Join-Path $resolvedWorkRoot "rea-analysis\intake\xapk-$($containerHash.Substring(0, 16))"
+        New-Item -ItemType Directory -Force -Path $expansionRoot | Out-Null
+        for ($index = 0; $index -lt $nestedApks.Count; $index++) {
+            $entry = $nestedApks[$index]
+            $role = if (($declaredBase -and $entry.FullName -ieq $declaredBase) -or $entry.Name -ieq 'base.apk') { 'base' } else { 'split-or-unknown' }
+            $outputName = if ($role -eq 'base') { 'base.apk' } else { 'split-{0:D3}.apk' -f ($index + 1) }
+            $expandedPath = Join-Path $expansionRoot $outputName
+            $inputStream = $entry.Open()
+            $outputStream = [System.IO.File]::Open($expandedPath, [System.IO.FileMode]::Create, [System.IO.FileAccess]::Write, [System.IO.FileShare]::None)
+            try { $inputStream.CopyTo($outputStream) } finally { $outputStream.Dispose(); $inputStream.Dispose() }
+            $apkSources.Add([PSCustomObject]@{
+                File = Get-Item -LiteralPath $expandedPath
+                DisplayName = "$([System.IO.Path]::GetRelativePath($resolvedInput, $xapkFile.FullName).Replace('\', '/'))!/$outputName"
+                DeclaredRole = $role
+                ContainerSha256 = $containerHash
+            })
+        }
+    } catch {
+        if ($_.Exception.Message -match '^XAPK ') { throw }
+        throw "Invalid XAPK ZIP structure: $($xapkFile.Name)"
+    } finally {
+        if ($archive) { $archive.Dispose() }
+    }
+    $after = Get-Item -LiteralPath $xapkFile.FullName
+    if ($after.Length -ne $beforeLength -or $after.LastWriteTimeUtc -ne $beforeWriteTime) {
+        throw "XAPK changed during inspection: $($xapkFile.Name)"
+    }
+}
+
+if ($apkSources.Count -eq 0) {
+    throw 'No APK files or XAPK bundles were found in the authorized intake directory.'
+}
+
+$duplicateNames = $apkSources | Group-Object { $_.DisplayName.ToLowerInvariant() } | Where-Object Count -GT 1
 if ($duplicateNames) {
     throw "Duplicate APK filename found: $($duplicateNames[0].Name)"
 }
 
-$baseCandidates = @($apkFiles | Where-Object Name -IEQ 'base.apk')
+$baseCandidates = @($apkSources | Where-Object DeclaredRole -EQ 'base')
 if ($baseCandidates.Count -gt 1) {
     throw 'More than one base.apk candidate was found.'
 }
 $basePath = if ($baseCandidates.Count -eq 1) {
-    $baseCandidates[0].FullName
-} elseif ($apkFiles.Count -eq 1) {
-    $apkFiles[0].FullName
+    $baseCandidates[0].File.FullName
+} elseif ($apkSources.Count -eq 1) {
+    $apkSources[0].File.FullName
 } else {
     $null
 }
 
-$artifacts = foreach ($file in $apkFiles) {
+$artifacts = foreach ($source in $apkSources) {
+    $file = $source.File
     $beforeLength = $file.Length
     $beforeWriteTime = $file.LastWriteTimeUtc
     $entries = @()
@@ -102,8 +172,9 @@ $artifacts = foreach ($file in $apkFiles) {
     }
 
     [PSCustomObject][ordered]@{
-        file = [System.IO.Path]::GetRelativePath($resolvedInput, $file.FullName).Replace('\', '/')
+        file = $source.DisplayName
         role = if ($basePath -and $file.FullName -eq $basePath) { 'base' } else { 'split-or-unknown' }
+        containerSha256 = $source.ContainerSha256
         bytes = $file.Length
         sha256 = $hash
         zipEntryCount = $entries.Count

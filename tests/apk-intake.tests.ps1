@@ -42,6 +42,26 @@ function New-SyntheticApk {
     }
 }
 
+function New-SyntheticXapk {
+    param([string]$Path, [string]$BaseApkPath, [string]$SplitApkPath)
+    New-Item -ItemType Directory -Force -Path (Split-Path $Path -Parent) | Out-Null
+    $stream = [System.IO.File]::Open($Path, [System.IO.FileMode]::Create)
+    try {
+        $archive = [System.IO.Compression.ZipArchive]::new($stream, [System.IO.Compression.ZipArchiveMode]::Create, $false)
+        try {
+            [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($archive, $BaseApkPath, 'app.apk') | Out-Null
+            [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($archive, $SplitApkPath, 'config.en.apk') | Out-Null
+            $manifestEntry = $archive.CreateEntry('manifest.json')
+            $writer = [System.IO.StreamWriter]::new($manifestEntry.Open())
+            try { $writer.Write('{"split_apks":[{"file":"app.apk","id":"base"},{"file":"config.en.apk","id":"config.en"}]}') } finally { $writer.Dispose() }
+        } finally {
+            $archive.Dispose()
+        }
+    } finally {
+        $stream.Dispose()
+    }
+}
+
 try {
     New-Item -ItemType Directory -Force -Path $testRoot | Out-Null
 
@@ -60,10 +80,29 @@ try {
 
     $unsupportedRoot = Join-Path $testRoot 'unsupported\input\apk'
     New-Item -ItemType Directory -Force -Path $unsupportedRoot | Out-Null
-    [System.IO.File]::WriteAllText((Join-Path $unsupportedRoot 'bundle.xapk'), 'unsupported fixture')
+    [System.IO.File]::WriteAllText((Join-Path $unsupportedRoot 'bundle.aab'), 'unsupported fixture')
     Assert-Throws -Pattern 'Unsupported package format' -Action {
         & $scriptPath -ConfirmAuthorized -WorkRoot (Join-Path $testRoot 'unsupported') -InputRoot $unsupportedRoot | Out-Null
     }
+
+    $xapkWork = Join-Path $testRoot 'xapk'
+    $xapkRoot = Join-Path $xapkWork 'input\apk'
+    $xapkFixtureRoot = Join-Path $testRoot 'xapk-fixtures'
+    $xapkBase = Join-Path $xapkFixtureRoot 'app.apk'
+    $xapkSplit = Join-Path $xapkFixtureRoot 'config.en.apk'
+    New-SyntheticApk -Path $xapkBase -Entries @('AndroidManifest.xml', 'classes.dex')
+    New-SyntheticApk -Path $xapkSplit -Entries @('AndroidManifest.xml', 'resources.arsc')
+    $xapkPath = Join-Path $xapkRoot 'bundle.xapk'
+    New-SyntheticXapk -Path $xapkPath -BaseApkPath $xapkBase -SplitApkPath $xapkSplit
+    $xapkBeforeHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $xapkPath).Hash
+    $xapkJson = & $scriptPath -ConfirmAuthorized -WorkRoot $xapkWork -InputRoot $xapkRoot
+    $xapkAfterHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $xapkPath).Hash
+    $xapkResult = $xapkJson | ConvertFrom-Json
+    Assert-True ($xapkBeforeHash -eq $xapkAfterHash) 'Validator modified its input XAPK.'
+    Assert-True ($xapkResult.artifactCount -eq 2) 'Expected two APK artifacts in the XAPK.'
+    Assert-True ($xapkResult.baseIdentified) 'XAPK manifest base declaration was not honored.'
+    Assert-True (($xapkResult.artifacts | Where-Object role -EQ 'base').Count -eq 1) 'Expected one XAPK base artifact.'
+    Assert-True (-not ($xapkJson -match [Regex]::Escape($testRoot))) 'XAPK JSON exposed an absolute test path.'
 
     $duplicateRoot = Join-Path $testRoot 'duplicate\input\apk'
     New-SyntheticApk -Path (Join-Path $duplicateRoot 'one\split.apk') -Entries @('AndroidManifest.xml')
