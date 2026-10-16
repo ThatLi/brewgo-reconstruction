@@ -1,0 +1,56 @@
+# Dependencies and build output
+node_modules/
+.expo/
+dist/
+coverage/
+web-build/
+*.log
+
+# Environment and credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.mobileprovision
+
+# Application packages and native binaries
+*.apk
+*.aab
+*.apks
+*.xapk
+*.ipa
+*.dex
+*.so
+*.dll
+*.dylib
+*.exe
+*.msi
+*.jar
+*.class
+
+# Analysis and extracted material
+work/
+analysis-raw/
+decompiled/
+decoded/
+extracted/
+rea-evidence*.json
+*.smali
+
+# Local tooling and caches
+.tools/
+.cache/
+.npm/
+tmp/
+temp/
+
+# Editor and OS state
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
