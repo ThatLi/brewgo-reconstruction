@@ -1,6 +1,6 @@
 # Authorized APK intake
 
-Place an APK or split-APK set you are authorized to inspect under:
+Place an APK, split-APK set, or XAPK bundle you are authorized to inspect under:
 
 ```text
 D:\Projects\brewgo-reconstruction-work\input\apk
@@ -14,8 +14,10 @@ Run the read-only validator with an explicit authorization confirmation:
 
 The validator:
 
-- accepts `.apk` files only;
-- rejects unsupported package containers and duplicate APK filenames;
+- accepts `.apk` files and `.xapk` split bundles;
+- expands XAPK members under the ignored external analysis directory with sanitized filenames;
+- uses an XAPK `manifest.json` base declaration when present;
+- rejects unsupported package containers and duplicate APK identities;
 - verifies ZIP readability, `AndroidManifest.xml`, and safe archive entry names;
 - identifies a conventional `base.apk` or a single-file base candidate;
 - records byte size and SHA-256 without modifying the input;

@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 1,
+  "artifactSetDigest": "c370f4e054ab9a365a254d8cceebf51ec961dc6b97aa465c4500c0cde4b4df41",
+  "package": {
+    "id": null,
+    "versionName": "1.4.70",
+    "versionCode": "119",
+    "minSdk": 24,
+    "targetSdk": 35
+  },
+  "artifacts": [
+    {
+      "id": "base",
+      "role": "base",
+      "bytes": 64529538,
+      "sha256": "751f033dc469b425f002c66812bade2af1bd060108d91b3034602971193aacfe"
+    },
+    {
+      "id": "abi-arm-v7a",
+      "role": "split",
+      "bytes": 18602738,
+      "sha256": "4ab683f33f84b9586e94c426353d375def2dbfc131db81b7ca97a26fdd6963cd"
+    },
+    {
+      "id": "locale-en",
+      "role": "split",
+      "bytes": 119295,
+      "sha256": "004edc4a61e0d11c145cb08b8572842f66cf76d5413875a9a0274ffab3052d1b"
+    },
+    {
+      "id": "density-mdpi",
+      "role": "split",
+      "bytes": 245866,
+      "sha256": "9299daaa602c6eae6b1913061c6b99aad4904b8ea613b134a7dfa46d24b54326"
+    }
+  ],
+  "components": {
+    "activities": [],
+    "services": [],
+    "receivers": [],
+    "providers": []
+  },
+  "permissions": [
+    "android.permission.ACCESS_COARSE_LOCATION",
+    "android.permission.ACCESS_FINE_LOCATION",
+    "android.permission.ACCESS_LOCATION_EXTRA_COMMANDS",
+    "android.permission.ACCESS_NETWORK_STATE",
+    "android.permission.ACCESS_WIFI_STATE",
+    "android.permission.CAMERA",
+    "android.permission.FOREGROUND_SERVICE",
+    "android.permission.INTERNET",
+    "android.permission.POST_NOTIFICATIONS",
+    "android.permission.READ_EXTERNAL_STORAGE",
+    "android.permission.READ_PHONE_STATE",
+    "android.permission.RECORD_AUDIO",
+    "android.permission.VIBRATE",
+    "android.permission.WAKE_LOCK",
+    "android.permission.WRITE_EXTERNAL_STORAGE",
+    "com.google.android.c2dm.permission.RECEIVE",
+    "com.google.android.finsky.permission.BIND_GET_INSTALL_REFERRER_SERVICE"
+  ],
+  "signatures": {
+    "verificationPerformed": false,
+    "note": "Static package inspection did not verify APK signatures."
+  },
+  "technology": {
+    "primary": "android-native",
+    "confidence": "medium",
+    "indicators": [
+      "DEX bytecode and a target-owned launcher with Android lifecycle methods",
+      "Kotlin runtime classes present",
+      "React Native and Compose class families present as bundled capabilities",
+      "WebView activity implementations present",
+      "No Flutter namespace match",
+      "Shortened target member names indicate obfuscation"
+    ]
+  },
+  "coverage": {
+    "manifest": "complete",
+    "resources": "partial",
+    "classes": "complete",
+    "nativeLibraries": "not-inspected"
+  },
+  "evidenceRefs": [
+    {
+      "kind": "manifest",
+      "artifactSha256": "751f033dc469b425f002c66812bade2af1bd060108d91b3034602971193aacfe",
+      "selector": "sanitized package summary"
+    },
+    {
+      "kind": "class-inventory",
+      "artifactSha256": "751f033dc469b425f002c66812bade2af1bd060108d91b3034602971193aacfe",
+      "selector": "framework-family and launcher queries"
+    },
+    {
+      "kind": "archive-inventory",
+      "artifactSha256": "751f033dc469b425f002c66812bade2af1bd060108d91b3034602971193aacfe",
+      "selector": "base member ZIP inventory"
+    }
+  ],
+  "unknowns": [
+    "Component names are intentionally omitted from the Git projection because target identifiers are protected by the repository guard.",
+    "Static library presence does not identify which screens use React Native, Compose, or WebView.",
+    "Reflection, dynamic loading, native behavior, and server-controlled behavior remain unknown.",
+    "APK signatures were not verified."
+  ]
+}
