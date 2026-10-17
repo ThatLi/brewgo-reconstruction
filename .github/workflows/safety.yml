@@ -1,4 +1,4 @@
-name: Repository safety
+name: Full verification
 
 on:
   push:
@@ -9,8 +9,12 @@ permissions:
   contents: read
 
 jobs:
-  safety:
+  verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      EXPO_NO_TELEMETRY: "1"
+      VITE_CONFIG_NATIVE_IGNORE_WARNING: "true"
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
@@ -22,3 +26,19 @@ jobs:
 
       - name: Scan tracked content
         run: npm run safety -- --all
+
+      - name: Install app dependencies
+        working-directory: app
+        run: npm ci
+
+      - name: Typecheck, lint, format, and test
+        working-directory: app
+        run: npm run check
+
+      - name: Export Android bundle
+        working-directory: app
+        run: npx expo export --platform android --output-dir /tmp/brewgo-android
+
+      - name: Export web bundle
+        working-directory: app
+        run: npx expo export --platform web --output-dir /tmp/brewgo-web
