@@ -35,6 +35,14 @@ describe("modifier validation", () => {
       valid: false,
     });
   });
+
+  it("rejects selections above a group maximum", () => {
+    const overSelected = [...selectedIds, "shot-one", "shot-two"] as ModifierOptionId[];
+    expect(validateModifierSelections(groups, modifierOptions, overSelected)).toMatchObject({
+      groupId: "shots",
+      valid: false,
+    });
+  });
 });
 
 describe("cart lines", () => {
@@ -78,5 +86,45 @@ describe("cart lines", () => {
     expect(updateLineQuantity([line], line.id, 2, product.maxQuantity)[0]?.quantity).toBe(2);
     expect(updateLineQuantity([line], line.id, 0, product.maxQuantity)).toEqual([]);
     expect(() => updateLineQuantity([line], line.id, 9, product.maxQuantity)).toThrow(RangeError);
+  });
+
+  it("gives different customizations different line identities", async () => {
+    const oat = await createCartLine(
+      product,
+      selectedOptions,
+      1,
+      "2030-01-01T00:00:00.000Z",
+      testDigest,
+    );
+    const wholeMilkOptions = modifierOptions.filter(({ id }) =>
+      selectedIds.map((value) => (value === "milk-oat" ? "milk-whole" : value)).includes(id),
+    );
+    const whole = await createCartLine(
+      product,
+      wholeMilkOptions,
+      1,
+      "2030-01-01T00:00:00.000Z",
+      testDigest,
+    );
+    expect(oat.id).not.toBe(whole.id);
+    expect(addOrMergeLine([oat], whole, product.maxQuantity)).toHaveLength(2);
+  });
+
+  it("rejects a merge beyond the product quantity cap", async () => {
+    const first = await createCartLine(
+      product,
+      selectedOptions,
+      8,
+      "2030-01-01T00:00:00.000Z",
+      testDigest,
+    );
+    const extra = await createCartLine(
+      product,
+      selectedOptions,
+      1,
+      "2030-01-01T00:00:00.000Z",
+      testDigest,
+    );
+    expect(() => addOrMergeLine([first], extra, product.maxQuantity)).toThrow(RangeError);
   });
 });
