@@ -253,4 +253,14 @@ export const coupons: readonly Coupon[] = [
     ],
     discount: { type: "percentage", basisPoints: 2000, maxDiscountFen: fen(800) },
   },
+  {
+    id: id<CouponId>("coupon-expired"),
+    code: "OLD10",
+    name: "Past Pour",
+    description: "An intentionally expired demo coupon.",
+    expiresAt: "2020-01-01T00:00:00.000Z",
+    minSubtotalFen: fen(0),
+    eligibleProductIds: [],
+    discount: { type: "fixed", amountFen: fen(1000) },
+  },
 ];

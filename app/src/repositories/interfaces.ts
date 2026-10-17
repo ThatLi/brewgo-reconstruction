@@ -1,7 +1,9 @@
 import type {
   Category,
   CategoryId,
+  CartLine,
   Coupon,
+  CouponEvaluation,
   ModifierGroup,
   ModifierGroupId,
   ModifierOption,
@@ -28,4 +30,10 @@ export interface CatalogRepository {
 export interface CouponRepository {
   listAvailable(at: string): Promise<Result<readonly Coupon[]>>;
   findByCode(code: string): Promise<Result<Coupon>>;
+  evaluate(
+    coupon: Coupon,
+    lines: readonly CartLine[],
+    store: Store,
+    at: string,
+  ): Promise<CouponEvaluation>;
 }

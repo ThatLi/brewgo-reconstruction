@@ -6,6 +6,7 @@ import {
   products,
   stores,
 } from "@/data/fixtures";
+import { evaluateCoupon } from "@/domain/coupon";
 import type {
   CategoryId,
   ModifierGroupId,
@@ -62,6 +63,9 @@ export const catalogRepository: CatalogRepository = {
 };
 
 export const couponRepository: CouponRepository = {
+  async evaluate(coupon, lines, store, at) {
+    return evaluateCoupon(coupon, lines, store, at, products);
+  },
   async listAvailable(at: string) {
     const instant = Date.parse(at);
     return found(coupons.filter((coupon) => Date.parse(coupon.expiresAt) > instant));

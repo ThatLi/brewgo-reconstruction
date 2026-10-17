@@ -127,12 +127,13 @@ export function updateLineQuantity(
   );
 }
 
-export function calculateCartTotals(lines: readonly CartLine[]): CartTotals {
+export function calculateCartTotals(lines: readonly CartLine[], discountFen = fen(0)): CartTotals {
   const subtotalFen = addFen(...lines.map(({ lineTotalFen }) => lineTotalFen));
+  const safeDiscount = fen(Math.min(discountFen, subtotalFen));
   return {
-    discountFen: fen(0),
+    discountFen: safeDiscount,
     itemCount: lines.reduce((total, { quantity }) => total + quantity, 0),
     subtotalFen,
-    totalFen: subtotalFen,
+    totalFen: fen(subtotalFen - safeDiscount),
   };
 }

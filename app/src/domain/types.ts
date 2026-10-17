@@ -87,6 +87,15 @@ export interface Coupon {
   discount: CouponDiscount;
 }
 
+export type CouponRejection =
+  "expired" | "minimum-not-met" | "no-eligible-products" | "store-unavailable" | "invalid-code";
+
+export interface CouponEvaluation {
+  eligible: boolean;
+  discountFen: Fen;
+  rejection?: CouponRejection;
+}
+
 export type RepositoryErrorCode = "not-found" | "unavailable" | "invalid-data" | "storage-failure";
 
 export interface RepositoryError {
