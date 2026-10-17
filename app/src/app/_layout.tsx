@@ -20,6 +20,7 @@ export default function RootLayout() {
               <Stack.Screen name="product/[id]" options={{ presentation: "modal" }} />
               <Stack.Screen name="checkout" />
               <Stack.Screen name="confirmation/[id]" />
+              <Stack.Screen name="orders/[id]" />
             </Stack>
           </View>
         </CartProvider>

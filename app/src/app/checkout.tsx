@@ -18,8 +18,8 @@ export default function CheckoutScreen() {
   const [addressSelected, setAddressSelected] = useState(false);
   const [validation, setValidation] = useState<string>();
 
-  function confirm() {
-    const result = confirmCheckout(addressSelected ? demoAddress : undefined);
+  async function confirm() {
+    const result = await confirmCheckout(addressSelected ? demoAddress : undefined);
     if (!result.ok) {
       setValidation(result.error);
       return;
@@ -80,7 +80,10 @@ export default function CheckoutScreen() {
           {validation}
         </Text>
       ) : null}
-      <ActionButton label={`Confirm demo · ${formatCny(totals.totalFen)}`} onPress={confirm} />
+      <ActionButton
+        label={`Confirm demo · ${formatCny(totals.totalFen)}`}
+        onPress={() => void confirm()}
+      />
     </Screen>
   );
 }

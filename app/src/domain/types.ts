@@ -6,6 +6,7 @@ export type ModifierGroupId = string & { readonly __brand: "ModifierGroupId" };
 export type ModifierOptionId = string & { readonly __brand: "ModifierOptionId" };
 export type CouponId = string & { readonly __brand: "CouponId" };
 export type CartLineId = string & { readonly __brand: "CartLineId" };
+export type OrderId = string & { readonly __brand: "OrderId" };
 export type FulfillmentMode = "pickup" | "delivery";
 export type Availability = "available" | "unavailable";
 
@@ -70,6 +71,32 @@ export interface CartTotals {
   discountFen: Fen;
   totalFen: Fen;
   itemCount: number;
+}
+
+export type FulfillmentStatus = "confirmed" | "preparing" | "ready" | "dispatched" | "completed";
+
+export interface OrderLineSnapshot {
+  cartLineId: CartLineId;
+  productName: string;
+  optionNames: readonly string[];
+  quantity: number;
+  unitPriceFen: Fen;
+  lineTotalFen: Fen;
+}
+
+export interface Order {
+  id: OrderId;
+  storeId: StoreId;
+  storeName: string;
+  fulfillmentMode: FulfillmentMode;
+  deliveryAddress?: string;
+  lines: readonly OrderLineSnapshot[];
+  couponId?: CouponId;
+  subtotalFen: Fen;
+  discountFen: Fen;
+  totalFen: Fen;
+  createdAt: string;
+  initialStatus: "confirmed";
 }
 
 export type CouponDiscount =
