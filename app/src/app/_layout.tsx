@@ -3,15 +3,22 @@ import { StatusBar } from "expo-status-bar";
 import { StyleSheet, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
+import { CatalogProvider } from "@/state/catalog-provider";
 import { colors } from "@/theme/tokens";
 
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
-      <StatusBar style="dark" />
-      <View style={styles.app}>
-        <Stack screenOptions={{ contentStyle: styles.app, headerShown: false }} />
-      </View>
+      <CatalogProvider>
+        <StatusBar style="dark" />
+        <View style={styles.app}>
+          <Stack screenOptions={{ contentStyle: styles.app, headerShown: false }}>
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="stores" options={{ presentation: "modal" }} />
+            <Stack.Screen name="product/[id]" options={{ presentation: "modal" }} />
+          </Stack>
+        </View>
+      </CatalogProvider>
     </SafeAreaProvider>
   );
 }
