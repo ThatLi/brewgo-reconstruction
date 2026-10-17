@@ -10,6 +10,7 @@ import {
 import { addOrMergeLine, calculateCartTotals, updateLineQuantity } from "@/domain/cart";
 import { evaluateCoupon } from "@/domain/coupon";
 import { fen } from "@/domain/money";
+import { validateCheckoutInput } from "@/domain/order";
 import type {
   CartLine,
   CartLineId,
@@ -128,11 +129,13 @@ export function CartProvider({ children }: PropsWithChildren) {
       },
       availableCoupons: coupons,
       async confirmCheckout(deliveryAddress) {
-        if (!selectedStore) return { error: "Choose a store before checkout.", ok: false };
-        if (!lines.length) return { error: "Add at least one item before checkout.", ok: false };
-        if (fulfillmentMode === "delivery" && !deliveryAddress) {
-          return { error: "Choose the demo delivery address.", ok: false };
-        }
+        const error = validateCheckoutInput({
+          deliveryAddress,
+          lines,
+          mode: fulfillmentMode,
+          store: selectedStore,
+        });
+        if (error || !selectedStore) return { error, ok: false };
         const createdAt = new Date().toISOString();
         const id = `BG-${Date.now().toString(36).toUpperCase()}` as OrderId;
         const order: Order = {
