@@ -3,7 +3,11 @@ import { describe, expect, it } from "vitest";
 import { fen } from "@/domain/money";
 import { getFulfillmentStatus } from "@/domain/order";
 import type { Order, OrderId, StoreId } from "@/domain/types";
-import { MemoryCommerceStorage } from "@/storage/commerce-storage";
+import {
+  decodeCommerceSnapshot,
+  decodeOrder,
+  MemoryCommerceStorage,
+} from "@/storage/commerce-storage";
 
 const order = (id: string, createdAt: string, mode: "pickup" | "delivery" = "pickup"): Order => ({
   createdAt,
@@ -19,6 +23,12 @@ const order = (id: string, createdAt: string, mode: "pickup" | "delivery" = "pic
 });
 
 describe("commerce persistence", () => {
+  it("rejects malformed persisted payloads", () => {
+    expect(decodeCommerceSnapshot("not-json")).toBeUndefined();
+    expect(decodeCommerceSnapshot('{"fulfillmentMode":"pickup","lines":[{}]}')).toBeUndefined();
+    expect(decodeOrder('{"id":"bad","lines":[{}]}')).toBeUndefined();
+  });
+
   it("round-trips a commerce snapshot without sharing mutable data", async () => {
     const storage = new MemoryCommerceStorage();
     await storage.initialize();

@@ -36,6 +36,7 @@ interface CartContextValue {
   lastConfirmation?: Order;
   lines: readonly CartLine[];
   orders: readonly Order[];
+  recoveryNotice?: string;
   removeLine(id: CartLineId): void;
   selectedCoupon?: Coupon;
   storageError?: string;
@@ -58,6 +59,7 @@ export function CartProvider({ children }: PropsWithChildren) {
   const [orders, setOrders] = useState<readonly Order[]>([]);
   const [storageStatus, setStorageStatus] = useState<StorageStatus>("loading");
   const [storageError, setStorageError] = useState<string>();
+  const [recoveryNotice, setRecoveryNotice] = useState<string>();
 
   useEffect(() => {
     let active = true;
@@ -75,6 +77,7 @@ export function CartProvider({ children }: PropsWithChildren) {
           if (snapshot.storeId) selectStore(snapshot.storeId, snapshot.fulfillmentMode);
         }
         setOrders(storedOrders);
+        setRecoveryNotice(commerceStorage.consumeRecoveryNotice());
         setStorageStatus("ready");
       } catch {
         if (!active) return;
@@ -172,6 +175,7 @@ export function CartProvider({ children }: PropsWithChildren) {
       lastConfirmation,
       lines,
       orders,
+      recoveryNotice,
       removeLine(id) {
         setLines((current) => current.filter((line) => line.id !== id));
       },
@@ -194,6 +198,7 @@ export function CartProvider({ children }: PropsWithChildren) {
       lastConfirmation,
       lines,
       orders,
+      recoveryNotice,
       selectedCoupon,
       selectedStore,
       storageError,

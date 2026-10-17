@@ -20,8 +20,11 @@ export default function CartScreen() {
     availableCoupons,
     couponEvaluation,
     lines,
+    recoveryNotice,
     removeLine,
     selectedCoupon,
+    storageError,
+    storageStatus,
     totals,
     updateQuantity,
   } = useCart();
@@ -44,7 +47,20 @@ export default function CartScreen() {
       <Text accessibilityRole="header" style={styles.title}>
         Your cart
       </Text>
-      {!lines.length ? (
+      {recoveryNotice ? (
+        <Text accessibilityLiveRegion="polite" style={styles.recoveryNotice}>
+          {recoveryNotice}
+        </Text>
+      ) : null}
+      {storageStatus === "loading" ? (
+        <StateView body="Restoring your local cart." title="Loading cart" tone="loading" />
+      ) : storageStatus === "error" ? (
+        <StateView
+          body={storageError ?? "Local cart storage could not be opened."}
+          title="Cart unavailable"
+          tone="error"
+        />
+      ) : !lines.length ? (
         <StateView
           actionLabel="Browse drinks"
           body="Browse the menu and customize something delicious."
@@ -71,7 +87,7 @@ export default function CartScreen() {
                   ) : null}
                   <View style={styles.actions}>
                     <ActionButton
-                      label="−"
+                      label="Decrease quantity"
                       onPress={() => updateQuantity(line.id, line.quantity - 1)}
                       tone="secondary"
                     />
@@ -80,7 +96,7 @@ export default function CartScreen() {
                     </Text>
                     <ActionButton
                       disabled={line.quantity >= (product?.maxQuantity ?? 1)}
-                      label="+"
+                      label="Increase quantity"
                       onPress={() => updateQuantity(line.id, line.quantity + 1)}
                       tone="secondary"
                     />
@@ -213,6 +229,13 @@ const styles = StyleSheet.create({
   lines: { gap: spacing.md },
   options: { ...typography.caption, color: colors.muted },
   quantity: { ...typography.section, color: colors.ink, minWidth: 32, textAlign: "center" },
+  recoveryNotice: {
+    ...typography.body,
+    backgroundColor: colors.sky,
+    borderRadius: radii.control,
+    color: colors.ink,
+    padding: spacing.md,
+  },
   screen: { gap: spacing.lg },
   sectionTitle: { ...typography.section, color: colors.ink },
   summary: {

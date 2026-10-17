@@ -218,15 +218,19 @@ export const products: readonly Product[] = [
     [],
     ["bakery", "almond"],
   ),
-  product(
-    "food-sesame-cookie",
-    "bakery",
-    "Black Sesame Cookie",
-    "A crisp-edged cookie with nutty sesame.",
-    1200,
-    [],
-    ["bakery", "sesame"],
-  ),
+  {
+    ...product(
+      "food-sesame-cookie",
+      "bakery",
+      "Black Sesame Cookie",
+      "A crisp-edged cookie with nutty sesame.",
+      1200,
+      [],
+      ["bakery", "sesame"],
+    ),
+    availability: "unavailable",
+    unavailableReason: "This synthetic batch is sold out for the demo.",
+  },
 ];
 
 export const coupons: readonly Coupon[] = [

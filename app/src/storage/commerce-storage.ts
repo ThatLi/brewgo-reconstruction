@@ -10,6 +10,7 @@ export interface CommerceSnapshot {
 }
 
 export interface CommerceStorage {
+  consumeRecoveryNotice(): string | undefined;
   getOrder(id: OrderId): Promise<Order | undefined>;
   initialize(): Promise<void>;
   listOrders(): Promise<readonly Order[]>;
@@ -20,8 +21,96 @@ export interface CommerceStorage {
 
 const initialSnapshot: CommerceSnapshot = { fulfillmentMode: "pickup", lines: [] };
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function isCartLine(value: unknown): value is CartLine {
+  return (
+    isRecord(value) &&
+    typeof value.id === "string" &&
+    typeof value.productId === "string" &&
+    Array.isArray(value.selectedOptionIds) &&
+    value.selectedOptionIds.every((id) => typeof id === "string") &&
+    Number.isSafeInteger(value.quantity) &&
+    Number(value.quantity) > 0 &&
+    Number.isSafeInteger(value.unitPriceFen) &&
+    Number(value.unitPriceFen) >= 0 &&
+    Number.isSafeInteger(value.lineTotalFen) &&
+    Number(value.lineTotalFen) >= 0 &&
+    typeof value.addedAt === "string"
+  );
+}
+
+function isOrderLine(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    typeof value.cartLineId === "string" &&
+    typeof value.productName === "string" &&
+    Array.isArray(value.optionNames) &&
+    value.optionNames.every((name) => typeof name === "string") &&
+    Number.isSafeInteger(value.quantity) &&
+    Number(value.quantity) > 0 &&
+    Number.isSafeInteger(value.unitPriceFen) &&
+    Number(value.unitPriceFen) >= 0 &&
+    Number.isSafeInteger(value.lineTotalFen) &&
+    Number(value.lineTotalFen) >= 0
+  );
+}
+
+export function decodeCommerceSnapshot(payload: string): CommerceSnapshot | undefined {
+  try {
+    const value: unknown = JSON.parse(payload);
+    if (
+      !isRecord(value) ||
+      (value.fulfillmentMode !== "pickup" && value.fulfillmentMode !== "delivery") ||
+      !Array.isArray(value.lines) ||
+      !value.lines.every(isOrderLine) ||
+      !value.lines.every(isCartLine) ||
+      (value.storeId !== undefined && typeof value.storeId !== "string") ||
+      (value.couponId !== undefined && typeof value.couponId !== "string")
+    ) {
+      return undefined;
+    }
+    return value as unknown as CommerceSnapshot;
+  } catch {
+    return undefined;
+  }
+}
+
+export function decodeOrder(payload: string): Order | undefined {
+  try {
+    const value: unknown = JSON.parse(payload);
+    if (
+      !isRecord(value) ||
+      typeof value.id !== "string" ||
+      typeof value.storeId !== "string" ||
+      typeof value.storeName !== "string" ||
+      (value.fulfillmentMode !== "pickup" && value.fulfillmentMode !== "delivery") ||
+      !Array.isArray(value.lines) ||
+      typeof value.createdAt !== "string" ||
+      value.initialStatus !== "confirmed" ||
+      !Number.isSafeInteger(value.subtotalFen) ||
+      !Number.isSafeInteger(value.discountFen) ||
+      !Number.isSafeInteger(value.totalFen)
+    ) {
+      return undefined;
+    }
+    return value as unknown as Order;
+  } catch {
+    return undefined;
+  }
+}
+
 export class ExpoSqliteCommerceStorage implements CommerceStorage {
   private database?: SQLiteDatabase;
+  private recoveryNotice?: string;
+
+  consumeRecoveryNotice() {
+    const notice = this.recoveryNotice;
+    this.recoveryNotice = undefined;
+    return notice;
+  }
 
   private async db(): Promise<SQLiteDatabase> {
     if (!this.database) {
@@ -44,6 +133,12 @@ export class ExpoSqliteCommerceStorage implements CommerceStorage {
         created_at TEXT NOT NULL,
         payload TEXT NOT NULL
       );
+      CREATE TABLE IF NOT EXISTS corrupt_data (
+        source TEXT NOT NULL,
+        source_id TEXT NOT NULL,
+        payload TEXT NOT NULL,
+        quarantined_at TEXT NOT NULL
+      );
       PRAGMA user_version = 1;
     `);
   }
@@ -53,7 +148,21 @@ export class ExpoSqliteCommerceStorage implements CommerceStorage {
     const row = await db.getFirstAsync<{ payload: string }>(
       "SELECT payload FROM commerce_state WHERE id = 1",
     );
-    return row ? (JSON.parse(row.payload) as CommerceSnapshot) : undefined;
+    if (!row) return undefined;
+    const snapshot = decodeCommerceSnapshot(row.payload);
+    if (snapshot) return snapshot;
+    await db.withTransactionAsync(async () => {
+      await db.runAsync(
+        "INSERT INTO corrupt_data (source, source_id, payload, quarantined_at) VALUES (?, ?, ?, ?)",
+        "commerce_state",
+        "1",
+        row.payload,
+        new Date().toISOString(),
+      );
+      await db.runAsync("DELETE FROM commerce_state WHERE id = 1");
+    });
+    this.recoveryNotice = "Corrupt cart data was reset; the demo is ready to use.";
+    return undefined;
   }
 
   async saveSnapshot(snapshot: CommerceSnapshot) {
@@ -79,7 +188,26 @@ export class ExpoSqliteCommerceStorage implements CommerceStorage {
     const rows = await db.getAllAsync<{ payload: string }>(
       "SELECT payload FROM orders ORDER BY created_at DESC",
     );
-    return rows.map(({ payload }) => JSON.parse(payload) as Order);
+    const orders: Order[] = [];
+    for (const row of rows) {
+      const order = decodeOrder(row.payload);
+      if (order) {
+        orders.push(order);
+        continue;
+      }
+      await db.withTransactionAsync(async () => {
+        await db.runAsync(
+          "INSERT INTO corrupt_data (source, source_id, payload, quarantined_at) VALUES (?, ?, ?, ?)",
+          "orders",
+          "unknown",
+          row.payload,
+          new Date().toISOString(),
+        );
+        await db.runAsync("DELETE FROM orders WHERE payload = ?", row.payload);
+      });
+      this.recoveryNotice = "One corrupt order was removed; valid demo orders remain available.";
+    }
+    return orders;
   }
 
   async getOrder(id: OrderId) {
@@ -88,13 +216,20 @@ export class ExpoSqliteCommerceStorage implements CommerceStorage {
       "SELECT payload FROM orders WHERE id = ?",
       id,
     );
-    return row ? (JSON.parse(row.payload) as Order) : undefined;
+    return row ? decodeOrder(row.payload) : undefined;
   }
 }
 
 export class MemoryCommerceStorage implements CommerceStorage {
   private snapshot: CommerceSnapshot | undefined;
   private readonly orders = new Map<OrderId, Order>();
+  private recoveryNotice?: string;
+
+  consumeRecoveryNotice() {
+    const notice = this.recoveryNotice;
+    this.recoveryNotice = undefined;
+    return notice;
+  }
 
   async initialize() {}
 
