@@ -5,6 +5,7 @@ export type ProductId = string & { readonly __brand: "ProductId" };
 export type ModifierGroupId = string & { readonly __brand: "ModifierGroupId" };
 export type ModifierOptionId = string & { readonly __brand: "ModifierOptionId" };
 export type CouponId = string & { readonly __brand: "CouponId" };
+export type CartLineId = string & { readonly __brand: "CartLineId" };
 export type FulfillmentMode = "pickup" | "delivery";
 export type Availability = "available" | "unavailable";
 
@@ -52,6 +53,23 @@ export interface ModifierOption {
   name: string;
   priceDeltaFen: Fen;
   availability: Availability;
+}
+
+export interface CartLine {
+  id: CartLineId;
+  productId: ProductId;
+  selectedOptionIds: readonly ModifierOptionId[];
+  quantity: number;
+  unitPriceFen: Fen;
+  lineTotalFen: Fen;
+  addedAt: string;
+}
+
+export interface CartTotals {
+  subtotalFen: Fen;
+  discountFen: Fen;
+  totalFen: Fen;
+  itemCount: number;
 }
 
 export type CouponDiscount =

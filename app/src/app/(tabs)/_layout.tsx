@@ -1,9 +1,11 @@
 import { Tabs } from "expo-router";
 
 import { TabIcon } from "@/components/tab-icon";
+import { useCart } from "@/state/cart-provider";
 import { colors, typography } from "@/theme/tokens";
 
 export default function TabLayout() {
+  const { totals } = useCart();
   return (
     <Tabs
       screenOptions={{
@@ -32,6 +34,7 @@ export default function TabLayout() {
         name="cart"
         options={{
           tabBarAccessibilityLabel: "Cart tab",
+          tabBarBadge: totals.itemCount || undefined,
           tabBarIcon: (props) => <TabIcon {...props} name="cart" />,
           title: "Cart",
         }}
