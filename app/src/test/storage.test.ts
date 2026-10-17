@@ -7,6 +7,7 @@ import {
   decodeCommerceSnapshot,
   decodeOrder,
   MemoryCommerceStorage,
+  SQLITE_SCHEMA,
 } from "@/storage/commerce-storage";
 
 const order = (id: string, createdAt: string, mode: "pickup" | "delivery" = "pickup"): Order => ({
@@ -23,6 +24,20 @@ const order = (id: string, createdAt: string, mode: "pickup" | "delivery" = "pic
 });
 
 describe("commerce persistence", () => {
+  it("defines versioned state, order, and quarantine tables", () => {
+    expect(SQLITE_SCHEMA).toContain("commerce_state");
+    expect(SQLITE_SCHEMA).toContain("orders");
+    expect(SQLITE_SCHEMA).toContain("corrupt_data");
+    expect(SQLITE_SCHEMA).toContain("user_version = 1");
+  });
+
+  it("starts with an empty recoverable state", async () => {
+    const storage = new MemoryCommerceStorage();
+    await storage.initialize();
+    expect(await storage.loadSnapshot()).toBeUndefined();
+    expect(await storage.listOrders()).toEqual([]);
+  });
+
   it("rejects malformed persisted payloads", () => {
     expect(decodeCommerceSnapshot("not-json")).toBeUndefined();
     expect(decodeCommerceSnapshot('{"fulfillmentMode":"pickup","lines":[{}]}')).toBeUndefined();
@@ -44,6 +59,21 @@ describe("commerce persistence", () => {
     });
   });
 
+  it("restores the same snapshot after a simulated restart", async () => {
+    const persistedDatabase = new MemoryCommerceStorage();
+    await persistedDatabase.initialize();
+    await persistedDatabase.saveSnapshot({
+      fulfillmentMode: "pickup",
+      lines: [],
+      storeId: "store-orchard" as StoreId,
+    });
+    await persistedDatabase.initialize();
+    expect(await persistedDatabase.loadSnapshot()).toMatchObject({
+      fulfillmentMode: "pickup",
+      storeId: "store-orchard",
+    });
+  });
+
   it("stores immutable orders newest first", async () => {
     const storage = new MemoryCommerceStorage();
     const older = order("BG-OLD", "2030-01-01T00:00:00.000Z");
@@ -52,6 +82,12 @@ describe("commerce persistence", () => {
     await storage.saveOrder(newer);
     expect((await storage.listOrders()).map(({ id }) => id)).toEqual(["BG-NEW", "BG-OLD"]);
     expect(await storage.getOrder(older.id)).toEqual(older);
+  });
+
+  it("keeps valid decoded orders when another row is malformed", () => {
+    const valid = order("BG-VALID", "2030-01-01T00:00:00.000Z");
+    const decoded = [JSON.stringify(valid), "{broken"].map(decodeOrder).filter(Boolean);
+    expect(decoded).toEqual([valid]);
   });
 });
 
